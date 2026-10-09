@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from core import db, new_id, now_iso, put_object, require_admin, require_owner, get_settings, APP_NAME, logger
 from routes_catalog import bust_cache
 from routes_orders import public_order, rzp_keys, payment_configured
+import emails
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -40,7 +41,9 @@ async def metrics():
             "to_fulfil": await db.orders.count_documents({"status": {"$in": ["confirmed", "processing"]}}),
             "customers": await db.users.count_documents({"role": "customer"}), "subscribers": await db.newsletter.count_documents({"status": "subscribed"}),
             "products": await db.products.count_documents({}), "daily": list(reversed(daily)), "top_products": top, "low_stock": low,
-            "payment_configured": payment_configured(), "payment_mode": "live" if rzp_keys()[0].startswith("rzp_live") else "test"}
+            "payment_configured": payment_configured(), "payment_mode": "live" if rzp_keys()[0].startswith("rzp_live") else "test",
+            "email_configured": emails.email_configured(), "demo_products": await db.products.count_documents({"is_demo": True}),
+            "webhook_url": os.environ["FRONTEND_URL"].rstrip("/") + "/api/webhooks/razorpay"}
 
 
 # ---------- Products ----------
@@ -143,6 +146,47 @@ async def delete_product(pid: str):
     await db.products.delete_one({"id": pid})
     bust_cache()
     return {"ok": True}
+
+
+class BulkRow(BaseModel):
+    id: str = Field(max_length=64)
+    price: int = Field(ge=1, le=10000000)
+    compare_at_price: Optional[int] = Field(None, ge=0, le=10000000)
+    sizes: List[SizeIn] = Field(max_length=20)
+
+
+class BulkIn(BaseModel):
+    rows: List[BulkRow] = Field(max_length=200)
+
+
+@router.get("/products-bulk")
+async def bulk_list():
+    items = await db.products.find({}, {"_id": 0, "id": 1, "title": 1, "sku": 1, "price": 1, "compare_at_price": 1, "sizes": 1, "is_demo": 1, "status": 1, "images": {"$slice": 1}}).sort("created_at", -1).to_list(200)
+    for p in items:
+        p["image"] = (p.pop("images", None) or [{}])[0].get("path", "")
+    return {"items": items, "demo_count": sum(1 for p in items if p.get("is_demo"))}
+
+
+@router.put("/products-bulk")
+async def bulk_update(body: BulkIn):
+    """Saves prices & per-size stock for many products at once and clears the DEMO flag — values are now owner-confirmed."""
+    updated = 0
+    for r in body.rows:
+        if r.compare_at_price and r.compare_at_price <= r.price:
+            raise HTTPException(400, f"Original price must be higher than selling price (product {r.id[:8]}…).")
+        if len({s.size for s in r.sizes}) != len(r.sizes):
+            raise HTTPException(400, "Duplicate sizes in a product row.")
+        res = await db.products.update_one({"id": r.id}, {"$set": {"price": r.price, "compare_at_price": r.compare_at_price or None, "sizes": [s.model_dump() for s in r.sizes],
+                                                                   "is_demo": False, "updated_at": now_iso()}})
+        updated += res.matched_count
+    bust_cache()
+    return {"updated": updated}
+
+
+@router.get("/emails")
+async def email_log(limit: int = Query(50, ge=1, le=200)):
+    items = await db.email_log.find({}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"items": items, "configured": emails.email_configured(), "from_name": emails.brand()}
 
 
 MAX_UPLOAD = 8 * 1024 * 1024
@@ -266,6 +310,10 @@ async def update_status(oid: str, body: StatusIn):
         upd["refund_due"] = True
     await db.orders.update_one({"id": oid}, {"$set": upd, "$push": {"timeline": {"status": body.status, "at": now_iso(), "note": body.note}}})
     bust_cache()
+    fresh = await db.orders.find_one({"id": oid}, {"_id": 0})
+    sender = {"shipped": emails.send_order_shipped, "delivered": emails.send_order_delivered, "cancelled": emails.send_order_cancelled}.get(body.status)
+    if sender:
+        emails.fire(sender(fresh))
     return await admin_order(oid)
 
 
@@ -284,6 +332,7 @@ async def refund(oid: str):
         raise HTTPException(502, "Refund request to Razorpay failed. Please retry or refund from the Razorpay dashboard.")
     await db.orders.update_one({"id": oid}, {"$set": {"payment_status": "refunded", "status": "refunded", "refund_id": rf.get("id"), "refund_due": False},
                                              "$push": {"timeline": {"status": "refunded", "at": now_iso(), "note": "Full refund initiated"}}})
+    emails.fire(emails.send_order_refunded(await db.orders.find_one({"id": oid}, {"_id": 0})))
     return await admin_order(oid)
 
 
@@ -330,8 +379,8 @@ async def customers(q: str = "", page: int = Query(1, ge=1), limit: int = Query(
     skip, lim = page_args(page, limit)
     total = await db.users.count_documents(query)
     users = await db.users.find(query, {"_id": 0, "password_hash": 0, "wishlist": 0}).sort("created_at", -1).skip(skip).limit(lim).to_list(lim)
-    emails = [u["email"] for u in users]
-    counts = {c["_id"]: c for c in await db.orders.aggregate([{"$match": {"email": {"$in": emails}, "payment_status": "paid"}},
+    emails_list = [u["email"] for u in users]
+    counts = {c["_id"]: c for c in await db.orders.aggregate([{"$match": {"email": {"$in": emails_list}, "payment_status": "paid"}},
                                                                {"$group": {"_id": "$email", "orders": {"$sum": 1}, "spent": {"$sum": "$totals.total"}}}]).to_list(lim)}
     for u in users:
         c = counts.get(u["email"], {})

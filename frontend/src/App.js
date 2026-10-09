@@ -22,6 +22,8 @@ const AdminDashboard = lazy(() => import("@/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("@/admin/AdminProducts").then((m) => ({ default: m.AdminProducts })));
 const AdminProductEdit = lazy(() => import("@/admin/AdminProducts").then((m) => ({ default: m.AdminProductEdit })));
 const AdminOrders = lazy(() => import("@/admin/AdminOrders"));
+const AdminBulkPricing = lazy(() => import("@/admin/AdminBulkPricing"));
+const AdminEmails = lazy(() => import("@/admin/AdminEmails"));
 const AdminCoupons = lazy(() => import("@/admin/AdminMisc").then((m) => ({ default: m.AdminCoupons })));
 const AdminCustomers = lazy(() => import("@/admin/AdminMisc").then((m) => ({ default: m.AdminCustomers })));
 const AdminNewsletter = lazy(() => import("@/admin/AdminMisc").then((m) => ({ default: m.AdminNewsletter })));
@@ -66,8 +68,10 @@ export default function App() {
                     <Route path="admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboard />} />
                       <Route path="products" element={<AdminProducts />} />
+                      <Route path="products/bulk" element={<AdminBulkPricing />} />
                       <Route path="products/:id" element={<AdminProductEdit />} />
                       <Route path="orders" element={<AdminOrders />} />
+                      <Route path="emails" element={<AdminEmails />} />
                       <Route path="coupons" element={<AdminCoupons />} />
                       <Route path="customers" element={<AdminCustomers />} />
                       <Route path="newsletter" element={<AdminNewsletter />} />

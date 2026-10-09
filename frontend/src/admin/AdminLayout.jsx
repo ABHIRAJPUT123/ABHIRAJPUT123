@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet, Link } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Tag, Users, Mail, FileText, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Tag, Users, Mail, FileText, ExternalLink, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSeo } from "@/lib/seo";
 
@@ -7,6 +7,7 @@ const NAV = [
   ["/admin", "Overview", LayoutDashboard, true],
   ["/admin/products", "Products", Package],
   ["/admin/orders", "Orders", ShoppingCart],
+  ["/admin/emails", "Emails", Send],
   ["/admin/coupons", "Coupons", Tag],
   ["/admin/customers", "Customers", Users],
   ["/admin/newsletter", "Newsletter", Mail],

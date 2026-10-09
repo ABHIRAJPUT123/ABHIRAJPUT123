@@ -13,6 +13,7 @@ from pymongo.errors import DuplicateKeyError
 from core import db, now, now_iso, new_id, get_optional_user, get_settings, rate_limit, logger
 from pricing import valid_phone, valid_pincode, coupon_discount, compute_totals, MAX_QTY_PER_LINE, razorpay_payment_signature_ok, razorpay_webhook_signature_ok
 from routes_catalog import bust_cache
+import emails
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -192,6 +193,7 @@ async def mark_paid(razorpay_order_id, payment_id, source):
         logger.warning(f"Order {o['order_number']} paid but stock insufficient — needs admin review")
     bust_cache()
     logger.info(f"Order {o['order_number']} marked paid via {source}")
+    emails.fire(emails.send_order_confirmed(o))
     return o
 
 

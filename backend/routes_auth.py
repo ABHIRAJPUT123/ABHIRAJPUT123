@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 from datetime import timedelta
 
@@ -7,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 from core import (db, now, now_iso, new_id, hash_password, verify_password, create_access_token, create_refresh_token,
                   set_auth_cookies, decode_token, public_user, get_current_user, rate_limit, client_ip, logger)
+import emails
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -100,9 +102,10 @@ async def forgot(body: ForgotIn, request: Request):
         token = secrets.token_urlsafe(32)
         await db.password_reset_tokens.insert_one({"token_hash": hashlib.sha256(token.encode()).hexdigest(), "user_id": user["id"],
                                                    "expires_at": now() + timedelta(hours=1), "used": False})
-        origin = request.headers.get("origin", "")
-        # Email service not configured: link is logged for the operator (see README > Email).
-        logger.info(f"PASSWORD_RESET_LINK {origin}/reset-password?token={token}")
+        link = f"{os.environ['FRONTEND_URL'].rstrip('/')}/reset-password?token={token}"
+        if not emails.email_configured():
+            logger.info(f"PASSWORD_RESET_LINK {link}")
+        emails.fire(emails.send_password_reset(user["email"], user.get("name", ""), link))
     return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
 
 

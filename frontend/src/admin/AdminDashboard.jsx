@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, inr } from "@/lib/api";
-import { AdminH1 } from "@/admin/AdminLayout";
+import { AdminH1, Badge } from "@/admin/AdminLayout";
 
 const Stat = ({ label, value, testid }) => (
   <div className="border border-line bg-ivory p-6" data-testid={testid}><p className="eyebrow">{label}</p><p className="mt-3 font-serif text-4xl">{value}</p></div>
@@ -13,8 +14,13 @@ export default function AdminDashboard() {
   return (
     <div data-testid="admin-dashboard">
       <AdminH1>Overview</AdminH1>
-      {!m.payment_configured && <div role="alert" className="mb-6 border-l-2 border-gold bg-ivory p-4 text-sm" data-testid="admin-payment-warning"><strong>Payments not configured.</strong> Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET (test mode first) to enable checkout. Orders currently stay “awaiting payment”.</div>}
+      {!m.payment_configured && <div role="alert" className="mb-6 border-l-2 border-gold bg-ivory p-4 text-sm" data-testid="admin-payment-warning"><strong>Payments not configured.</strong> Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET (test mode first) to the backend .env and restart — checkout switches to real Razorpay payments automatically. Orders currently stay “awaiting payment”.</div>}
       {m.payment_configured && <p className="mb-6 text-xs text-taupe">Razorpay mode: <strong className="uppercase">{m.payment_mode}</strong></p>}
+      <div className="mb-6 grid gap-4 md:grid-cols-3" data-testid="admin-integrations">
+        <div className="border border-line bg-ivory p-5 text-sm"><p className="eyebrow mb-3">Razorpay</p><Badge tone={m.payment_configured ? "ok" : "warn"}>{m.payment_configured ? `${m.payment_mode} keys active` : "keys missing"}</Badge><p className="mt-3 text-xs text-taupe">Webhook URL (events: payment.captured, order.paid, payment.failed):</p><code className="mt-1 block break-all text-[11px]" data-testid="admin-webhook-url">{m.webhook_url}</code></div>
+        <div className="border border-line bg-ivory p-5 text-sm"><p className="eyebrow mb-3">Transactional email</p><Badge tone={m.email_configured ? "ok" : "warn"}>{m.email_configured ? "live" : "logging only"}</Badge><p className="mt-3 text-xs text-taupe">Order confirmed · shipped · delivered · cancelled · refunded · password reset. <Link to="/admin/emails" className="underline">View log</Link></p></div>
+        <div className="border border-line bg-ivory p-5 text-sm"><p className="eyebrow mb-3">Catalogue</p><Badge tone={m.demo_products ? "warn" : "ok"}>{m.demo_products ? `${m.demo_products} demo-priced` : "prices confirmed"}</Badge><p className="mt-3 text-xs text-taupe">{m.demo_products ? "Confirm real retail prices and stock before launch." : "All products carry owner-confirmed prices and stock."} <Link to="/admin/products/bulk" className="underline" data-testid="admin-bulk-link">Prices & stock</Link></p></div>
+      </div>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Revenue (paid)" value={inr(m.revenue)} testid="metric-revenue" />
         <Stat label="Paid orders" value={m.paid_orders} testid="metric-paid-orders" />

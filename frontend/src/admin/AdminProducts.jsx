@@ -13,7 +13,7 @@ export function AdminProducts() {
   const { data } = useQuery({ queryKey: ["admin-products", q, status, page], queryFn: () => api.get("/admin/products", { params: { q, status, page } }).then((r) => r.data) });
   return (
     <div data-testid="admin-products">
-      <AdminH1 action={<Link to="/admin/products/new" className="btn-primary" data-testid="admin-new-product-button">New product</Link>}>Products</AdminH1>
+      <AdminH1 action={<div className="flex gap-3"><Link to="/admin/products/bulk" className="btn-outline" data-testid="admin-bulk-pricing-link">Prices & stock</Link><Link to="/admin/products/new" className="btn-primary" data-testid="admin-new-product-button">New product</Link></div>}>Products</AdminH1>
       <div className="mb-5 flex flex-wrap gap-3">
         <input className="input-luxe h-10 max-w-xs bg-ivory" placeholder="Search title or SKU" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} data-testid="admin-products-search" />
         <select className="input-luxe h-10 w-40 bg-ivory" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} data-testid="admin-products-status-filter"><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select>
