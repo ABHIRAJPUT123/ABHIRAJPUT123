@@ -7,7 +7,7 @@ function ZoomImage({ image, onOpen, priority }) {
   return (
     <button type="button" onClick={onOpen} onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setZ(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`); }}
       onMouseLeave={() => setZ(null)} className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-linen" aria-label="Open full-screen image" data-testid="pdp-main-image">
-      <img src={img(image.path_lg || image.path)} alt={image.alt} loading={priority ? "eager" : "lazy"} fetchpriority={priority ? "high" : undefined}
+      <img src={img(image.path_lg || image.path)} alt={image.alt} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : undefined}
         className="h-full w-full object-cover transition-transform duration-300" style={z ? { transform: "scale(2)", transformOrigin: z } : undefined} />
     </button>
   );

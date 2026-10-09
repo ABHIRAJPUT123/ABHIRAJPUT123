@@ -1,3 +1,4 @@
+import os
 import re
 import time
 
@@ -55,6 +56,7 @@ async def get_meta():
     has_sales_data = await db.products.count_documents({**pub, "sales_count": {"$gt": 0}}) > 0
     s = await get_settings()
     data = {"categories": cats, "collections": cols, "has_sale": has_sale, "has_sales_data": has_sales_data,
+            "payment_configured": bool(os.environ.get("RAZORPAY_KEY_ID") and os.environ.get("RAZORPAY_KEY_SECRET")),
             "settings": {k: s.get(k) for k in ["announcement", "shipping_flat", "free_shipping_threshold", "delivery_estimate", "hero", "editorials", "contact_email", "contact_phone"]}}
     _cache["meta"] = (time.time(), data)
     return data

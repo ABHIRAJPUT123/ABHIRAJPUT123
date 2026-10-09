@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { api, errMsg, inr, EMAIL_RE } from "@/lib/api";
 import { useSeo } from "@/lib/seo";
+import { useMeta } from "@/lib/queries";
 import { openRazorpay } from "@/lib/razorpay";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -26,14 +27,14 @@ export function Summary({ priced, coupon, setCoupon, applyCoupon, couponMsg }) {
       <h2 className="font-serif text-2xl">Order summary</h2>
       <ul className="mt-2 divide-y divide-line">{priced?.lines.map((l) => <BagLine key={l.product_id + l.size} l={l} />)}</ul>
       {setCoupon && (
-        <form onSubmit={applyCoupon} className="mt-4 border-t border-line pt-5">
+        <div className="mt-4 border-t border-line pt-5">
           <label htmlFor="coupon" className="label-luxe">Promo code</label>
           <div className="flex">
-            <input id="coupon" value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} maxLength={30} className="input-luxe h-11 bg-ivory" placeholder="Enter code" data-testid="coupon-input" />
-            <button className="btn-outline h-11 shrink-0 px-5 py-0" data-testid="coupon-apply-button">Apply</button>
+            <input id="coupon" value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} maxLength={30} className="input-luxe h-11 bg-ivory" placeholder="Enter code" onKeyDown={(e) => e.key === "Enter" && applyCoupon(e)} data-testid="coupon-input" />
+            <button type="button" onClick={applyCoupon} className="btn-outline h-11 shrink-0 px-5 py-0" data-testid="coupon-apply-button">Apply</button>
           </div>
           {couponMsg && <p role="status" className={`mt-2 text-xs ${couponMsg.ok ? "text-ink" : "text-destructive"}`} data-testid="coupon-message">{couponMsg.text}</p>}
-        </form>
+        </div>
       )}
       {t && (
         <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
@@ -66,6 +67,7 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState("");
   const errRef = useRef(null);
+  const { data: meta } = useMeta();
 
   useEffect(() => {
     if (user) {
@@ -176,7 +178,7 @@ export default function Checkout() {
             <Summary priced={priced} coupon={coupon} setCoupon={setCoupon} applyCoupon={applyCoupon} couponMsg={couponMsg} />
             {priced?.issues?.length > 0 && <div role="alert" className="mt-4 border border-destructive/40 p-3 text-xs text-destructive" data-testid="checkout-issues">{priced.issues.map((i) => <p key={i.product_id + i.size}>{i.message}</p>)}</div>}
             {formErr && <p ref={errRef} tabIndex={-1} role="alert" className="mt-4 text-sm text-destructive" data-testid="checkout-error">{formErr}</p>}
-            <button type="submit" disabled={busy || !priced} className="btn-primary mt-6 w-full" data-testid="place-order-button"><Lock size={14} /> {busy ? "Processing…" : `Pay ${priced ? inr(priced.totals.total) : ""}`}</button>
+            <button type="submit" disabled={busy || !priced} className="btn-primary mt-6 w-full" data-testid="place-order-button"><Lock size={14} /> {busy ? "Processing…" : meta?.payment_configured === false ? "Place order — awaiting payment" : `Pay ${priced ? inr(priced.totals.total) : ""}`}</button>
             <p className="mt-3 text-center text-xs text-taupe">By placing your order you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.</p>
           </div>
         </div>

@@ -81,7 +81,7 @@ export default function Product() {
     if (!size) return setErr("Please select a size.");
     if (!sel?.available) return setErr("This size is currently unavailable.");
     setErr("");
-    add(p, size, qty, sel.max_qty);
+    add(p, size, qty, sel.max_qty, !buy);
     if (buy) nav("/checkout");
   };
 

@@ -20,7 +20,7 @@ export function CartProvider({ children }) {
 
   useEffect(() => localStorage.setItem(KEY, JSON.stringify(items)), [items]);
 
-  const add = useCallback((p, size, qty = 1, maxQty = MAX_QTY) => {
+  const add = useCallback((p, size, qty = 1, maxQty = MAX_QTY, openBag = true) => {
     setItems((cur) => {
       const i = cur.findIndex((x) => x.product_id === p.id && x.size === size);
       if (i >= 0) {
@@ -32,7 +32,7 @@ export function CartProvider({ children }) {
     });
     setAnnounce(`${p.title}, size ${size}, added to your bag`);
     toast.success("Added to bag", { description: `${p.title} · ${size}` });
-    setOpen(true);
+    if (openBag) setOpen(true);
   }, []);
 
   const update = useCallback((pid, size, qty) => setItems((cur) => cur.map((x) => (x.product_id === pid && x.size === size ? { ...x, qty: Math.max(1, Math.min(qty, MAX_QTY)) } : x))), []);

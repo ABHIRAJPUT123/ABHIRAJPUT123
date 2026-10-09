@@ -10,7 +10,7 @@ function Hero({ hero }) {
   return (
     <section className="relative grain h-[82vh] min-h-[560px] overflow-hidden bg-linen sm:h-[88vh]" data-testid="home-hero">
       <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-2">
-        {hero?.image && <img src={img(hero.image)} alt="ANORA campaign — ivory rose A-line kurta in a Jaipur courtyard" fetchpriority="high" className="slowzoom h-full w-full object-cover object-[50%_20%]" />}
+        {hero?.image && <img src={img(hero.image)} alt="ANORA campaign — ivory rose A-line kurta in a Jaipur courtyard" fetchPriority="high" className="slowzoom h-full w-full object-cover object-[50%_20%]" />}
         {hero?.image_secondary && <img src={img(hero.image_secondary)} alt="ANORA campaign — scarlet buti kurta beneath a carved arch" className="slowzoom hidden h-full w-full object-cover object-[50%_20%] md:block" />}
       </div>
       <div className="absolute inset-0 z-[2] bg-gradient-to-t from-ink/80 via-ink/30 to-ink/5" />
