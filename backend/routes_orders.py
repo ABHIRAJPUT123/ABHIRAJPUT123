@@ -172,7 +172,12 @@ async def checkout(body: CheckoutIn, request: Request):
 
 
 async def mark_paid(razorpay_order_id, payment_id, source):
-    """Idempotent: only the first successful transition decrements stock."""
+    """Idempotent: a paid Razorpay order must only decrement stock once."""
+    existing = await db.orders.find_one({"razorpay_order_id": razorpay_order_id}, {"_id": 0})
+    if existing and existing.get("payment_status") == "paid":
+        logger.info(f"Order with razorpay_order_id {razorpay_order_id} already marked paid; skipping duplicate payment processing")
+        return existing
+
     o = await db.orders.find_one_and_update(
         {"razorpay_order_id": razorpay_order_id, "payment_status": {"$ne": "paid"}},
         {"$set": {"payment_status": "paid", "status": "confirmed", "paid_at": now_iso(), "payment_id": payment_id, "paid_via": source},

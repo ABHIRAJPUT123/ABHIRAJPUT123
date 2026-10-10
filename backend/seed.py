@@ -192,7 +192,7 @@ async def ensure_indexes():
     await db.orders.create_index("id", unique=True)
     await db.orders.create_index("order_number", unique=True)
     await db.orders.create_index("idempotency_key", unique=True)
-    await db.orders.create_index("razorpay_order_id", sparse=True)
+    await db.orders.create_index("razorpay_order_id", unique=True, sparse=True)
     await db.orders.create_index([("email", 1), ("created_at", -1)])
     await db.orders.create_index([("status", 1), ("created_at", -1)])
     await db.coupons.create_index("code", unique=True)
